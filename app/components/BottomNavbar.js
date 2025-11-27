@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 export default function BottomNavbar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const navItems = [
     { 
@@ -52,10 +54,27 @@ export default function BottomNavbar() {
     return pathname?.startsWith(href);
   };
 
+  const handleLogout = async () => {
+    try {
+      // Sign out without redirect first
+      const result = await signOut({ 
+        redirect: false 
+      });
+      
+      // Then manually navigate to login page
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: manually redirect if signOut fails
+      router.push('/login');
+    }
+  };
+
   return (
     <nav className="lg:hidden fixed bottom-4 left-4 right-4 z-50 safe-area-bottom">
       <div className="bg-white rounded-full shadow-2xl border border-gray-200/60 backdrop-blur-md">
-        <div className="flex justify-around items-center h-16 px-3">
+        <div className="flex justify-around items-center h-16 px-2">
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -80,6 +99,24 @@ export default function BottomNavbar() {
               </Link>
             );
           })}
+          
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="flex flex-col items-center justify-center h-full px-3 transition-all duration-200 relative group text-red-500 hover:text-red-600"
+            title="Logout"
+          >
+            <div className="relative transition-all duration-200 group-hover:scale-105">
+              <div className="p-1.5">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+            </div>
+            <span className="text-[10px] font-semibold mt-0.5 transition-colors text-red-500 group-hover:text-red-600">
+              Logout
+            </span>
+          </button>
         </div>
       </div>
     </nav>
