@@ -1,22 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import KPICard from './components/KPICard';
 import StatusBadge from './components/StatusBadge';
 import RoleBadge from './components/RoleBadge';
 
 export default function Home() {
   const { data: session, status } = useSession();
-  const router = useRouter();
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, router]);
 
   // Show loading state while checking authentication
   if (status === 'loading') {
@@ -28,11 +18,6 @@ export default function Home() {
         </div>
       </div>
     );
-  }
-
-  // Don't render dashboard if not authenticated (will redirect)
-  if (status === 'unauthenticated' || !session) {
-    return null;
   }
   // Dummy data for dashboard
   const kpiData = [

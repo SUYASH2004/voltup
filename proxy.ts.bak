@@ -1,0 +1,32 @@
+// proxy.ts - Route protection proxy (formerly middleware)
+
+import { NextRequest, NextResponse } from 'next/server';
+import { protectRoute } from '@/lib/auth/proxy';
+
+/**
+ * Proxy runs on every request (middleware renamed to proxy in Next.js 16)
+ * We use it to protect routes before they render
+ *
+ * Key points:
+ * - Checks if user is authenticated
+ * - Checks if user has required permissions
+ * - Redirects to login if not authenticated
+ * - Redirects to forbidden if lacking permissions
+ *
+ * Configuration in next.config.mjs:
+ * export const config = {
+ *   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+ * };
+ */
+export async function proxy(request: NextRequest) {
+  // Apply route protection
+  return protectRoute(request);
+}
+
+// Configuration: which routes should trigger proxy
+export const config = {
+  matcher: [
+    // Apply to all routes except:
+    '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
+  ],
+};

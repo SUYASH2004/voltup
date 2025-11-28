@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Sidebar from './Sidebar';
 import BottomNavbar from './BottomNavbar';
@@ -9,19 +8,9 @@ import SessionTimeout from './SessionTimeout';
 import { useSidebar } from '../contexts/SidebarContext';
 
 export default function LayoutWrapper({ children }) {
-  // All hooks must be called at the top, before any conditional returns
   const { isCollapsed } = useSidebar();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const router = useRouter();
-  
-  // Redirect to login if not authenticated (defense in depth)
-  // This hook must be called on every render, even for login page
-  useEffect(() => {
-    if (status === 'unauthenticated' && pathname !== '/login') {
-      router.push('/login');
-    }
-  }, [status, pathname, router]);
 
   // Don't show sidebar/navbar on login page
   if (pathname === '/login') {
@@ -40,8 +29,8 @@ export default function LayoutWrapper({ children }) {
     );
   }
 
-  // Don't render layout if not authenticated (will redirect)
-  if (status === 'unauthenticated' || !session) {
+  // If not authenticated or no session, don't render (middleware will handle redirect)
+  if (!session || status === 'unauthenticated') {
     return null;
   }
   

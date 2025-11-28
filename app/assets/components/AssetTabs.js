@@ -2,52 +2,102 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { Bike, Battery, Zap, Cpu, Settings } from 'lucide-react';
 
+/**
+ * Asset tabs with role-based visibility
+ * 
+ * Features:
+ * - Filters tabs based on user permissions (from backend at login)
+ * - Uses useAuth hook to check permissions
+ * - Server-side protection via proxy.ts (real enforcement)
+ * - Client-side filtering (for better UX)
+ * 
+ * Security layers:
+ * 1. Proxy (server): Blocks unauthorized route access
+ * 2. Component (client): Hides unauthorized tabs from UI
+ * 3. Backend (server): Validates data access
+ * 
+ * Even if user manipulates this to show hidden tabs, proxy blocks them.
+ */
 export default function AssetTabs() {
   const pathname = usePathname();
+  const { user, can, hasRole, isLoading } = useAuth();
 
-  const tabs = [
-    { 
-      href: '/assets/vehicles', 
+  // Tab configurations with permissions
+  const allTabs = [
+    {
+      href: '/assets/vehicles',
       label: 'Vehicles',
       shortLabel: 'Vehicles',
-      icon: (
-        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-        </svg>
-      )
+      icon: <Bike className="w-4 h-4 sm:w-5 sm:h-5" />,
+      permission: 'vehicle.view',
     },
-    { 
-      href: '/assets/batteries', 
+    {
+      href: '/assets/batteries',
       label: 'Batteries',
       shortLabel: 'Batteries',
-      icon: (
-        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-        </svg>
-      )
+      icon: <Battery className="w-4 h-4 sm:w-5 sm:h-5" />,
+      permission: 'battery.view',
     },
-    { 
-      href: '/assets/charging-stations', 
+    {
+      href: '/assets/charging-stations',
       label: 'Charging Stations',
       shortLabel: 'Stations',
-      icon: (
-        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      )
+      icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" />,
+      permission: 'station.view',
     },
-    { 
-      href: '/assets/tcu', 
+    {
+      href: '/assets/tcu',
       label: 'TCU',
       shortLabel: 'TCU',
-      icon: (
-        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-        </svg>
-      )
+      icon: <Cpu className="w-4 h-4 sm:w-5 sm:h-5" />,
+      permission: 'tcu.view',
+    },
+    {
+      href: '/assets/tenant-config',
+      label: 'Tenant Config',
+      shortLabel: 'Config',
+      icon: <Settings className="w-4 h-4 sm:w-5 sm:h-5" />,
+      permission: 'tenant.view',
+      roles: ['tenant_manager'],
     },
   ];
+
+  // Show loading state to prevent hydration mismatch
+  if (isLoading) {
+    return (
+      <div className="border-b border-gray-200 bg-white h-12 animate-pulse" />
+    );
+  }
+
+  // Filter tabs based on user permissions
+  const visibleTabs = allTabs.filter((tab) => {
+    // Check permission if defined
+    if (tab.permission && !can(tab.permission)) {
+      return false;
+    }
+
+    // Check role if defined (user must have ONE of the roles)
+    if (tab.roles && !tab.roles.includes(user?.role)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Show message if no tabs are available
+  if (visibleTabs.length === 0) {
+    return (
+      <div className="border-b border-gray-200 bg-white p-4 text-center text-gray-500">
+        <p className="text-sm">No asset tabs available for your role</p>
+        <p className="text-xs mt-1 text-gray-400">
+          Contact administrator if you believe this is an error
+        </p>
+      </div>
+    );
+  }
 
   const isActive = (href) => {
     return pathname === href || pathname?.startsWith(href + '/');
@@ -56,7 +106,7 @@ export default function AssetTabs() {
   return (
     <div className="border-b border-gray-200 bg-white">
       <div className="flex space-x-0.5 sm:space-x-1 overflow-x-auto scrollbar-hide px-2 sm:px-4">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const active = isActive(tab.href);
           return (
             <Link
@@ -67,8 +117,11 @@ export default function AssetTabs() {
                   ? 'border-emerald-600 text-emerald-600 bg-emerald-50/50'
                   : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
               }`}
+              title={`${tab.label} (${tab.permission || 'public'})`}
             >
-              <span className={`flex-shrink-0 ${active ? 'text-emerald-600' : 'text-gray-500'}`}>{tab.icon}</span>
+              <span className={`shrink-0 ${active ? 'text-emerald-600' : 'text-gray-500'}`}>
+                {tab.icon}
+              </span>
               <span className="hidden xs:inline sm:hidden md:inline">{tab.label}</span>
               <span className="xs:hidden md:hidden">{tab.shortLabel}</span>
             </Link>

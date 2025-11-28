@@ -25,24 +25,38 @@ function LoginForm() {
     setLoading(true);
 
     try {
+      console.log('[Login] Submitting credentials for:', email);
+      
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
+      console.log('[Login] SignIn result:', result);
+
       if (result?.error) {
-        setError(result.error === 'CredentialsSignin' 
+        const errorMessage = result.error === 'CredentialsSignin' 
           ? 'Invalid email or password' 
-          : result.error);
+          : result.error;
+        console.error('[Login] Auth error:', errorMessage);
+        setError(errorMessage);
       } else if (result?.ok) {
+        console.log('[Login] Login successful, waiting for session...');
+        // Wait a moment for session to be established
+        await new Promise(resolve => setTimeout(resolve, 500));
         const callbackUrl = searchParams.get('callbackUrl') || '/';
+        console.log('[Login] Redirecting to:', callbackUrl);
         router.push(callbackUrl);
         router.refresh();
+      } else {
+        console.error('[Login] Unknown error:', result);
+        setError('Login failed. Please try again.');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
-      console.error('Login error:', err);
+      const errorMsg = 'An error occurred. Please try again.';
+      setError(errorMsg);
+      console.error('[Login] Exception:', err);
     } finally {
       setLoading(false);
     }
